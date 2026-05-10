@@ -2,10 +2,12 @@ package com.ira.archive.repository;
 
 import com.ira.archive.entity.Order;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 import java.util.List;
 
-@Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
-    List<Order> findByUser_UserMail(String userMail);
+    // FIX: Renamed from findByUser_UserMail to findByUser_Email to match User.java
+    List<Order> findByUser_Email(String email);
+
+    // NEW: Added to support the controller's lookup by ID
+    List<Order> findByUserId(Long userId);
 }

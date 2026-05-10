@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { loginUser } from '../services/api'; // We'll add this next
+import { loginUser } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -7,34 +7,51 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Check if user is already logged in on startup
+    // 1. Check for both user data and token on app startup
     useEffect(() => {
-        const savedUser = localStorage.getItem('ira_user');
-        if (savedUser) setUser(JSON.parse(savedUser));
+        const savedUser = localStorage.getItem('user');
+        const token = localStorage.getItem('token');
+
+        if (savedUser && token) {
+            setUser(JSON.parse(savedUser));
+        }
         setLoading(false);
     }, []);
 
     const login = async (credentials) => {
         try {
             const res = await loginUser(credentials);
-            const userData = res.data; // This usually contains the user info + token
+
+            // 2. Extract JWT and User details from backend AuthResponse
+            const { token, ...userData } = res.data;
+
+            // 3. Store the token separately for the API interceptor
+            localStorage.setItem('token', token);
+
+            // 4. Store the rest of the user info (name, email, role)
+            localStorage.setItem('user', JSON.stringify(userData));
+
             setUser(userData);
-            localStorage.setItem('ira_user', JSON.stringify(userData));
             return { success: true };
         } catch (err) {
             console.error("Login failed", err);
-            return { success: false, message: err.response?.data?.message || "Invalid credentials" };
+            return {
+                success: false,
+                message: err.response?.data || "Invalid credentials"
+            };
         }
     };
 
     const logout = () => {
+        // 5. Clean up all security credentials on logout
         setUser(null);
-        localStorage.removeItem('ira_user');
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
     };
 
     return (
         <AuthContext.Provider value={{ user, login, logout, loading }}>
-            {children}
+            {!loading && children}
         </AuthContext.Provider>
     );
 };

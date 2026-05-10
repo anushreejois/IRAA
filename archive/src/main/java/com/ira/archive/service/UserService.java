@@ -5,13 +5,17 @@ import com.ira.archive.dto.SignupRequest;
 import com.ira.archive.entity.User;
 import com.ira.archive.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Optional;
 
 @Service
-public class UserService {
+public class UserService implements UserDetailsService {
 
     @Autowired
     private UserRepository userRepository;
@@ -19,9 +23,27 @@ public class UserService {
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
-    // 1. SIGNUP LOGIC
+    // 1. SPRING SECURITY INTEGRATION
+    // This method allows Spring Security to find the user in the database during login
+    @Override
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User Not Found with email: " + email));
+
+        return new org.springframework.security.core.userdetails.User(
+                user.getEmail(),
+                user.getPassword(),
+                new ArrayList<>() // You can add roles/authorities here later
+        );
+    }
+
+    // 2. HELPER FOR AUTH CONTROLLER
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email).orElse(null);
+    }
+
+    // 3. SIGNUP LOGIC
     public String registerUser(SignupRequest request) {
-        // Check if email already exists
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             return "Error: Email already in use!";
         }
@@ -29,9 +51,8 @@ public class UserService {
         User user = new User();
         user.setName(request.getName());
         user.setEmail(request.getEmail());
-        user.setRole("USER"); // Default role
+        user.setRole("USER");
 
-        // THE BCRYPT THINGY: Hash the password before saving
         String hashedPassword = passwordEncoder.encode(request.getPassword());
         user.setPassword(hashedPassword);
 
@@ -39,17 +60,16 @@ public class UserService {
         return "User registered successfully!";
     }
 
-    // 2. SIMPLE LOGIN LOGIC (No JWT)
+    // 4. LOGIN LOGIC (Keep as fallback or for internal use)
     public User loginUser(LoginRequest request) {
         Optional<User> userOpt = userRepository.findByEmail(request.getEmail());
 
         if (userOpt.isPresent()) {
             User user = userOpt.get();
-            // Check if the raw password matches the hashed password in DB
             if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-                return user; // Login successful
+                return user;
             }
         }
-        return null; // Login failed
+        return null;
     }
 }

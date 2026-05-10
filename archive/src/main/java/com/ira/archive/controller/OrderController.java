@@ -1,14 +1,14 @@
 package com.ira.archive.controller;
 
+import com.ira.archive.dto.OrderRequest; // Import the DTO
 import com.ira.archive.entity.Order;
-import com.ira.archive.entity.OrderItem;
 import com.ira.archive.entity.User;
 import com.ira.archive.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+        import java.util.List;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -18,18 +18,28 @@ public class OrderController {
     @Autowired
     private OrderService orderService;
 
-    // 1. PLACE ORDER (Checkout)
+    /**
+     * Updated checkout logic to resolve the argument mismatch.
+     * We now accept OrderRequest to capture total and address.
+     */
     @PostMapping("/place")
-    public ResponseEntity<Order> checkout(@RequestBody List<OrderItem> items, @RequestParam Long userId) {
-        // In a real app, we'd get the User from the session/context
+    public ResponseEntity<Order> checkout(@RequestBody OrderRequest request, @RequestParam Long userId) {
+        // Mocking the user for now using the ID provided in the request param
         User user = new User();
         user.setId(userId);
 
-        Order savedOrder = orderService.placeOrder(user, items);
+        // Pass all 4 required arguments to match the OrderService.placeOrder signature
+        Order savedOrder = orderService.placeOrder(
+                user,
+                request.getItems(),
+                request.getTotalPrice(),
+                request.getShippingAddress()
+        );
+
         return ResponseEntity.ok(savedOrder);
     }
 
-    // 2. GET ORDER HISTORY
+    // GET ORDER HISTORY
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<Order>> getHistory(@PathVariable Long userId) {
         return ResponseEntity.ok(orderService.getUserOrders(userId));

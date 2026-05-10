@@ -4,10 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 
 const Login = () => {
-    // 1. Changed 'username' to 'email'
+    // 1. Local state matches the 'LoginRequest' DTO keys in Java
     const [credentials, setCredentials] = useState({ email: '', password: '' });
     const [error, setError] = useState('');
-    const { login } = useAuth();
+    const { login } = useAuth(); // Destructure login from AuthContext
     const navigate = useNavigate();
 
     const handleChange = (e) => {
@@ -18,12 +18,19 @@ const Login = () => {
         e.preventDefault();
         setError('');
 
-        const result = await login(credentials);
+        try {
+            // 2. Call the login function from AuthContext
+            const result = await login(credentials);
 
-        if (result.success) {
-            navigate('/shop');
-        } else {
-            setError(result.message || "Invalid credentials. Please check your email and password.");
+            if (result.success) {
+                // 3. Navigate to shop upon successful verification
+                navigate('/shop');
+            } else {
+                // 4. Display specific error messages from the backend if available
+                setError(result.message || "Invalid credentials. Please check your email and password.");
+            }
+        } catch (err) {
+            setError("A connection error occurred. Please try again later.");
         }
     };
 
@@ -48,11 +55,10 @@ const Login = () => {
 
                     <form onSubmit={handleLogin} className="space-y-8">
                         <div>
-                            {/* 2. Label changed to Email */}
                             <label className="text-[10px] uppercase tracking-[0.2em] opacity-40 font-bold block mb-3">Email Address</label>
                             <input
                                 type="email"
-                                name="email" // 3. Name must be 'email'
+                                name="email"
                                 value={credentials.email}
                                 onChange={handleChange}
                                 required

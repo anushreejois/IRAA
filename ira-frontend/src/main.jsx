@@ -8,12 +8,12 @@ import { AuthProvider } from './context/AuthContext'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
-        <CartProvider>
+    <AuthProvider>
+      <CartProvider>
+        <BrowserRouter>
           <App />
-        </CartProvider>
-      </AuthProvider>
-    </BrowserRouter>
-  </React.StrictMode>,
+        </BrowserRouter>
+      </CartProvider>
+    </AuthProvider>
+  </React.StrictMode>
 )
