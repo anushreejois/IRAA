@@ -1,37 +1,43 @@
 package com.ira.archive.controller;
 
-import com.ira.archive.repository.OrderRepository;
+import com.ira.archive.entity.Product;
 import com.ira.archive.repository.ProductRepository;
-import com.ira.archive.repository.UserRepository;
+import com.ira.archive.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.HashMap;
-import java.util.Map;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/admin")
-@CrossOrigin(origins = "http://localhost:5173")
 public class AdminController {
 
     @Autowired
-    private ProductRepository productRepo;
+    private ProductRepository productRepository;
 
-    @Autowired
-    private UserRepository userRepo;
+    // 1. UPLOAD NEW ARTIFACT
+    @PostMapping("/products")
+    public ResponseEntity<Product> addProduct(@RequestBody Product product) {
+        return ResponseEntity.ok(productRepository.save(product));
+    }
 
-    @Autowired
-    private OrderRepository orderRepo;
+    // 2. UPDATE EXISTING ARTIFACT
+    @PutMapping("/products/{id}")
+    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product details) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
-    @GetMapping("/stats")
-    public Map<String, Long> getStats() {
-        Map<String, Long> stats = new HashMap<>();
-        stats.put("totalProducts", productRepo.count());
-        stats.put("totalUsers", userRepo.count());
-        stats.put("totalOrders", orderRepo.count());
-        return stats;
+        product.setTitle(details.getTitle());
+        product.setPrice(details.getPrice());
+        product.setStock(details.getStock());
+        product.setImageUrl(details.getImageUrl());
+
+        return ResponseEntity.ok(productRepository.save(product));
+    }
+
+    // 3. REMOVE FROM ARCHIVE
+    @DeleteMapping("/products/{id}")
+    public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
+        productRepository.deleteById(id);
+        return ResponseEntity.ok("Artifact removed from the archive.");
     }
 }

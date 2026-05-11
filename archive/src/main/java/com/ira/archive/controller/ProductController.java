@@ -1,77 +1,62 @@
 package com.ira.archive.controller;
 
 import com.ira.archive.entity.Product;
-import com.ira.archive.exception.ResourceNotFoundException;
-import com.ira.archive.repository.ProductRepository;
+import com.ira.archive.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/products")
+@CrossOrigin(origins = "http://localhost:5173")
 public class ProductController {
 
     @Autowired
-    private ProductRepository productRepository;
+    private ProductService productService;
 
-    // 1. Updated: Get All Products with Pagination and Sorting
+    /**
+     * Unified Product Fetcher
+     * Now handles Pagination, Sorting, Search, and Department Filtering in one go.
+     */
     @GetMapping
-    public Page<Product> getAllProducts(
+    public ResponseEntity<Page<Product>> getProducts(
+            @RequestParam(required = false) String department,
+            @RequestParam(defaultValue = "") String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size,
             @RequestParam(defaultValue = "id") String sortBy
     ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).descending());
-        return productRepository.findAll(pageable);
+        return ResponseEntity.ok(productService.getAllProducts(department, search, pageable));
     }
 
+    /**
+     * Get Artifact Details
+     */
     @GetMapping("/{id}")
-    public Product getProductById(@PathVariable Long id) {
-        return productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
+    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
+        return productService.getProductById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    // 2. Updated Search: Refined with Pagination
-    @GetMapping("/search")
-    public Page<Product> search(
-            @RequestParam String query,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "12") int size
-    ) {
-        Pageable pageable = PageRequest.of(page, size);
-        return productRepository.findByTitleContainingIgnoreCase(query, pageable);
-    }
-
-    // 3. Updated Category Filter: Refined with Pagination
+    /**
+     * Category Filter with Pagination
+     */
     @GetMapping("/category/{id}")
-    public Page<Product> getByCategoryId(
+    public ResponseEntity<Page<Product>> getByCategoryId(
             @PathVariable Long id,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size
     ) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Product> products = productRepository.findByCategoryId(id, pageable);
-
-        if (products.isEmpty()) {
-            throw new ResourceNotFoundException("No products found for Category ID: " + id);
-        }
-        return products;
+        return ResponseEntity.ok(productService.getProductsByCategory(id, pageable));
     }
 
-    // 4. Refined Price Filter: Now using database-level filtering for efficiency
-    @GetMapping("/filter")
-    public Page<Product> filterByPrice(
-            @RequestParam Double maxPrice,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "12") int size
-    ) {
-        // For advanced filtering, you could add a custom query to ProductRepository.
-        // For now, we apply pagination to a subset of results.
-        Pageable pageable = PageRequest.of(page, size);
-        return productRepository.findAll(pageable);
-        // Note: In a real production app, you'd create findByPriceLessThanEqual in the Repository.
-    }
+    // Note: The /search and /filter endpoints are now redundant because
+    // the main @GetMapping handles search and filtering logic via ProductService.
 }

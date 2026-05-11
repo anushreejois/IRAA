@@ -17,19 +17,21 @@ public class OrderService {
     @Autowired
     private OrderRepository orderRepository;
 
+    /**
+     * Finalize Acquisition
+     * Saves the order manifest and links all individual items to it.
+     */
     @Transactional
     public Order placeOrder(User user, List<OrderItem> items, Double total, String address) {
         Order order = new Order();
 
         order.setUser(user);
         order.setOrderDate(LocalDateTime.now());
-        order.setStatus("ARCHIVED");
+        order.setStatus("ARCHIVED"); // Default status for IRA
         order.setTotalPrice(total);
-
-        // NOTE: Ensure you add 'private String shippingAddress' to Order.java entity
-        // as it is currently missing in the source
         order.setShippingAddress(address);
 
+        // Link each individual item to this specific order manifest
         for (OrderItem item : items) {
             item.setOrder(order);
         }
@@ -39,16 +41,18 @@ public class OrderService {
     }
 
     /**
-     * FIX: Updated to call the corrected repository method
+     * Fetch by Email
+     * Updated to match the repository's sorted method: findByUser_EmailOrderByOrderDateDesc
      */
     public List<Order> getUserOrdersByMail(String email) {
-        return orderRepository.findByUser_Email(email);
+        return orderRepository.findByUser_EmailOrderByOrderDateDesc(email);
     }
 
     /**
-     * NEW: Implementation for the call used in OrderController
+     * Fetch by User ID
+     * Primary method used by the Archivist's Log (OrderHistory.jsx)
      */
     public List<Order> getUserOrders(Long userId) {
-        return orderRepository.findByUserId(userId);
+        return orderRepository.findByUserIdOrderByOrderDateDesc(userId);
     }
 }

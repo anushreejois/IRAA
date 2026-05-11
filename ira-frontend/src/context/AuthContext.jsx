@@ -7,12 +7,11 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // 1. Check for both user data and token on app startup
     useEffect(() => {
-        const savedUser = localStorage.getItem('user');
+        const savedUser = localStorage.getItem('ira_user'); // Consistent naming
         const token = localStorage.getItem('token');
 
-        if (savedUser && token) {
+        if (savedUser && token && token !== "undefined") {
             setUser(JSON.parse(savedUser));
         }
         setLoading(false);
@@ -22,31 +21,42 @@ export const AuthProvider = ({ children }) => {
         try {
             const res = await loginUser(credentials);
 
-            // 2. Extract JWT and User details from backend AuthResponse
-            const { token, ...userData } = res.data;
+            // Log this to your console to see EXACTLY what the backend is sending
+            console.log("Backend Response:", res.data);
 
-            // 3. Store the token separately for the API interceptor
+            // 1. Destructure exactly what comes from your AuthResponse DTO
+            const { token, id, name, email, role } = res.data;
+
+            if (!token) {
+                throw new Error("Token missing from server response");
+            }
+
+            // 2. Save the raw token string
             localStorage.setItem('token', token);
 
-            // 4. Store the rest of the user info (name, email, role)
-            localStorage.setItem('user', JSON.stringify(userData));
+            // 3. Save the user object (including the role for the Curator's Desk)
+            const userData = { id, name, email, role };
+            localStorage.setItem('ira_user', JSON.stringify(userData));
 
             setUser(userData);
             return { success: true };
         } catch (err) {
-            console.error("Login failed", err);
+            console.error("Login attempt failed:", err);
             return {
                 success: false,
-                message: err.response?.data || "Invalid credentials"
+                message: typeof err.response?.data === 'string'
+                    ? err.response.data
+                    : "Access Denied. Check your credentials."
             };
         }
     };
 
     const logout = () => {
-        // 5. Clean up all security credentials on logout
         setUser(null);
-        localStorage.removeItem('user');
+        localStorage.removeItem('ira_user');
         localStorage.removeItem('token');
+        // Optional: Redirect to home or login after logout
+        window.location.href = '/login';
     };
 
     return (

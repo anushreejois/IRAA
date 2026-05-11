@@ -5,13 +5,14 @@ import com.ira.archive.dto.SignupRequest;
 import com.ira.archive.entity.User;
 import com.ira.archive.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Optional;
 
 @Service
@@ -24,25 +25,27 @@ public class UserService implements UserDetailsService {
     private BCryptPasswordEncoder passwordEncoder;
 
     // 1. SPRING SECURITY INTEGRATION
-    // This method allows Spring Security to find the user in the database during login
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User Not Found with email: " + email));
 
+        // CRITICAL UPDATE: Map the role string to a SimpleGrantedAuthority
+        // We ensure it has the "ROLE_" prefix so .hasRole("ADMIN") works in the Config
+        String roleWithPrefix = user.getRole().startsWith("ROLE_") ? user.getRole() : "ROLE_" + user.getRole();
+
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
                 user.getPassword(),
-                new ArrayList<>() // You can add roles/authorities here later
+                Collections.singletonList(new SimpleGrantedAuthority(roleWithPrefix))
         );
     }
 
-    // 2. HELPER FOR AUTH CONTROLLER
     public User findByEmail(String email) {
         return userRepository.findByEmail(email).orElse(null);
     }
 
-    // 3. SIGNUP LOGIC
+    // 2. SIGNUP LOGIC
     public String registerUser(SignupRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             return "Error: Email already in use!";
@@ -51,7 +54,9 @@ public class UserService implements UserDetailsService {
         User user = new User();
         user.setName(request.getName());
         user.setEmail(request.getEmail());
-        user.setRole("USER");
+
+        // Defaulting new signups to ROLE_USER
+        user.setRole("ROLE_USER");
 
         String hashedPassword = passwordEncoder.encode(request.getPassword());
         user.setPassword(hashedPassword);
@@ -60,7 +65,7 @@ public class UserService implements UserDetailsService {
         return "User registered successfully!";
     }
 
-    // 4. LOGIN LOGIC (Keep as fallback or for internal use)
+    // 3. LOGIN LOGIC
     public User loginUser(LoginRequest request) {
         Optional<User> userOpt = userRepository.findByEmail(request.getEmail());
 

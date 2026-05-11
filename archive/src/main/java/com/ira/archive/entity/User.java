@@ -18,5 +18,6 @@ public class User {
 
     private String password;
 
-    private String role; // "USER" or "ADMIN"
+    // Inside User.java
+    private String role = "ROLE_USER"; // Default role
 }

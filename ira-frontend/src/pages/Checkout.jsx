@@ -1,90 +1,135 @@
 import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { placeOrder } from '../services/api';
+import API from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 
 const Checkout = () => {
-    const { cart, totalItems } = useCart();
+    const { cart, clearCart } = useCart();
     const { user } = useAuth();
     const navigate = useNavigate();
 
     const [address, setAddress] = useState({ street: '', city: '', zip: '' });
+
+    // Calculate total precisely
     const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
     const handleCheckout = async (e) => {
         e.preventDefault();
 
+        // 1. Map cart items to the DTO format the Backend expects
+        const items = cart.map(item => ({
+            product: { id: item.id },
+            quantity: item.quantity,
+            price: item.price
+        }));
+
+        // 2. Prepare the Request Body
         const orderPayload = {
-            userMail: user?.userMail, // Linking the order to the logged-in user
-            items: cart,
+            items: items,
             totalPrice: subtotal,
             shippingAddress: `${address.street}, ${address.city}, ${address.zip}`
         };
 
         try {
-            await placeOrder(orderPayload);
-            alert("Order archived successfully. Your artifacts are being prepared.");
-            // Logic to clear cart would go here
-            navigate('/shop');
+            // 3. Extract the User ID from the Auth context
+            const userId = user?.id || user?.userId;
+
+            if (!userId) {
+                alert("Member identity not found. Please sign in again.");
+                return;
+            }
+
+            // 4. POST request with userId as a Query Parameter
+            await API.post(`/orders/place?userId=${userId}`, orderPayload);
+
+            // 5. Success Flow
+            alert("Acquisition Successful. The Archive has recorded your manifest.");
+
+            if (clearCart) clearCart(); // Clean up the bag
+            navigate('/orders'); // Redirect to the Archivist's Log
+
         } catch (err) {
-            console.error("Order failed", err);
-            alert("The Archive could not process this order. Please check your connection.");
+            console.error("Acquisition Failed:", err.response?.data || err.message);
+            alert("The Archive could not process this order. Please verify your connection.");
         }
     };
 
     return (
-        <div className="min-h-screen bg-[#F9F7F2]">
+        <div className="min-h-screen bg-[#F9F7F2] selection:bg-black selection:text-white">
             <Navbar />
 
-            <div className="max-w-4xl mx-auto py-24 px-6">
-                <h1 className="font-serif text-5xl italic mb-16 text-center">Finalize Acquisition.</h1>
+            <div className="max-w-5xl mx-auto py-24 px-12">
+                <header className="mb-20 text-center">
+                    <span className="text-[10px] uppercase tracking-[0.5em] opacity-30 block mb-4">Secure Checkout</span>
+                    <h1 className="font-serif text-6xl italic text-[#1A1A1A] tracking-tighter">Finalize Acquisition.</h1>
+                </header>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-20">
-                    {/* LEFT: SHIPPING FORM */}
-                    <form onSubmit={handleCheckout} className="space-y-8">
-                        <h2 className="text-[10px] uppercase tracking-[0.4em] font-bold opacity-40 mb-10">Shipping Logistics</h2>
-
-                        <div className="space-y-6">
-                            <input
-                                type="text" placeholder="STREET ADDRESS" required
-                                className="w-full bg-transparent border-b border-black/10 py-3 outline-none focus:border-black text-[10px] tracking-widest"
-                                onChange={(e) => setAddress({...address, street: e.target.value})}
-                            />
-                            <div className="flex gap-4">
-                                <input
-                                    type="text" placeholder="CITY" required
-                                    className="w-1/2 bg-transparent border-b border-black/10 py-3 outline-none focus:border-black text-[10px] tracking-widest"
-                                    onChange={(e) => setAddress({...address, city: e.target.value})}
-                                />
-                                <input
-                                    type="text" placeholder="ZIP CODE" required
-                                    className="w-1/2 bg-transparent border-b border-black/10 py-3 outline-none focus:border-black text-[10px] tracking-widest"
-                                    onChange={(e) => setAddress({...address, zip: e.target.value})}
-                                />
-                            </div>
-                        </div>
-
-                        <button className="w-full bg-[#1A1A1A] text-white py-6 text-[10px] font-bold uppercase tracking-[0.4em] hover:bg-black transition-all mt-10">
-                            Confirm Purchase — ${subtotal}
-                        </button>
-                    </form>
-
-                    {/* RIGHT: SUMMARY */}
-                    <div className="bg-white/30 p-10 border border-black/5">
-                        <h2 className="text-[10px] uppercase tracking-[0.4em] font-bold opacity-40 mb-8">Manifest</h2>
-                        <div className="space-y-4 mb-8">
-                            {cart.map(item => (
-                                <div key={`${item.id}-${item.size}`} className="flex justify-between text-[11px] tracking-tighter">
-                                    <span>{item.title} (x{item.quantity})</span>
-                                    <span className="tabular-nums">${item.price * item.quantity}</span>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-20">
+                    {/* LEFT: Logistics Form */}
+                    <div className="lg:col-span-7">
+                        <form onSubmit={handleCheckout} className="space-y-12">
+                            <section>
+                                <h2 className="text-[10px] font-bold uppercase tracking-[0.4em] opacity-40 mb-10 pb-4 border-b border-black/5">
+                                    Shipping Logistics
+                                </h2>
+                                <div className="space-y-8">
+                                    <input
+                                        type="text" placeholder="STREET ADDRESS" required
+                                        className="w-full bg-transparent border-b border-black/10 py-4 outline-none focus:border-black text-[11px] tracking-[0.2em] transition-colors"
+                                        onChange={(e) => setAddress({...address, street: e.target.value})}
+                                    />
+                                    <div className="grid grid-cols-2 gap-8">
+                                        <input
+                                            type="text" placeholder="CITY" required
+                                            className="w-full bg-transparent border-b border-black/10 py-4 outline-none focus:border-black text-[11px] tracking-[0.2em] transition-colors"
+                                            onChange={(e) => setAddress({...address, city: e.target.value})}
+                                        />
+                                        <input
+                                            type="text" placeholder="ZIP CODE" required
+                                            className="w-full bg-transparent border-b border-black/10 py-4 outline-none focus:border-black text-[11px] tracking-[0.2em] transition-colors"
+                                            onChange={(e) => setAddress({...address, zip: e.target.value})}
+                                        />
+                                    </div>
                                 </div>
-                            ))}
-                        </div>
-                        <div className="border-t border-black/5 pt-6 flex justify-between font-serif text-xl italic">
-                            <span>Total</span>
-                            <span>${subtotal}</span>
+                            </section>
+
+                            <button type="submit" className="w-full bg-[#1A1A1A] text-white py-8 text-[11px] font-bold uppercase tracking-[0.5em] hover:bg-black transition-all duration-500 shadow-xl">
+                                Confirm Purchase — ${subtotal.toLocaleString()}
+                            </button>
+                        </form>
+                    </div>
+
+                    {/* RIGHT: Order Manifest Summary */}
+                    <div className="lg:col-span-5">
+                        <div className="sticky top-32 bg-white/40 p-10 border border-black/5 backdrop-blur-sm">
+                            <h2 className="text-[10px] font-bold uppercase tracking-[0.4em] opacity-40 mb-10">Manifest Summary</h2>
+
+                            <div className="space-y-6 mb-12">
+                                {cart.map((item, idx) => (
+                                    <div key={idx} className="flex justify-between items-center group">
+                                        <div className="flex flex-col">
+                                            <span className="font-serif italic text-lg text-[#1A1A1A]">{item.title}</span>
+                                            <span className="text-[9px] uppercase tracking-widest opacity-30 mt-1">Qty: {item.quantity}</span>
+                                        </div>
+                                        <span className="font-serif italic opacity-60 text-sm">
+                                            ${(item.price * item.quantity).toLocaleString()}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="border-t border-black/10 pt-8 flex justify-between items-baseline">
+                                <span className="text-[10px] font-bold uppercase tracking-[0.4em] opacity-40">Total Valuation</span>
+                                <span className="font-serif text-4xl italic text-[#1A1A1A]">
+                                    ${subtotal.toLocaleString()}
+                                </span>
+                            </div>
+
+                            <p className="mt-12 text-[8px] uppercase tracking-widest opacity-20 text-center leading-relaxed">
+                                By confirming, you agree to the archival storage <br/> and logistics terms of IRA.
+                            </p>
                         </div>
                     </div>
                 </div>

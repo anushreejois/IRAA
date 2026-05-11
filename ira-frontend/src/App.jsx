@@ -1,40 +1,84 @@
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import Home from './pages/Home.jsx';
-import Shop from './pages/Shop.jsx';
-import Login from './pages/Login.jsx';
-import Signup from './pages/Signup.jsx';
-import ProductDetail from './pages/ProductDetail.jsx';
-import Cart from './pages/Cart.jsx';
-import Checkout from './pages/Checkout.jsx';
-import CartDrawer from './components/CartDrawer.jsx';
+import React, { useEffect } from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom';
+
+// Context Providers
+import { AuthProvider } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
+
+// Components
+import CartDrawer from './components/CartDrawer';
+import ProtectedRoute from './components/ProtectedRoute';
+
+// Pages
+import Home from './pages/Home';
+import About from './pages/About'; // The new Heritage page
+import Shop from './pages/Shop';
+import ProductDetail from './pages/ProductDetail';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import Cart from './pages/Cart';
+import Checkout from './pages/Checkout';
+import OrderHistory from './pages/OrderHistory';
+import AdminDashboard from './pages/AdminDashboard';
+
+// Helper: Resets scroll position on navigation
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+};
 
 function App() {
   return (
-    <>
-      {/* The CartDrawer sits here, outside the Routes.
-        This allows it to be controlled globally and overlay
-        any page without being unmounted during navigation.
-      */}
-      <CartDrawer />
+    <AuthProvider>
+      <CartProvider>
+        <ScrollToTop />
 
-      <Routes>
-        {/* 1. Landing Page */}
-        <Route path="/" element={<Home />} />
+        {/* The CartDrawer sits globally to allow for sliding animations on any route */}
+        <CartDrawer />
 
-        {/* 2. Product Gallery */}
-        <Route path="/shop" element={<Shop />} />
-        <Route path="/product/:id" element={<ProductDetail />} />
+        <Routes>
+          {/* --- 1. PUBLIC ARCHIVE --- */}
+          <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/product/:id" element={<ProductDetail />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/cart" element={<Cart />} />
 
-        {/* We keep these routes for direct access, but the Drawer will be the primary UX */}
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/checkout" element={<Checkout />} />
+          {/* --- 2. MEMBER PROTECTED ROUTES --- */}
+          <Route
+            path="/checkout"
+            element={
+              <ProtectedRoute>
+                <Checkout />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/orders"
+            element={
+              <ProtectedRoute>
+                <OrderHistory />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* 3. Authentication Pages */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-      </Routes>
-    </>
+          {/* --- 3. CURATOR (ADMIN) PROTECTED ROUTES --- */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute isAdminRequired={true}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </CartProvider>
+    </AuthProvider>
   );
 }
 

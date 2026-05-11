@@ -21,6 +21,10 @@ public class Product {
     private Double rating;
     private String imageUrl;
 
+    // Added for Task 6.1: Departmental Filtering
+    // Stores "Men", "Women", "Kids", or "Unisex"
+    private String department;
+
     @ManyToOne
     @JoinColumn(name = "category_id")
     private Category category;

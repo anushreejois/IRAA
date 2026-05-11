@@ -15,25 +15,39 @@ export const CartProvider = ({ children }) => {
     useEffect(() => {
         const savedCart = localStorage.getItem('ira_bag');
         if (savedCart) {
-            setCart(JSON.parse(savedCart));
+            try {
+                setCart(JSON.parse(savedCart));
+            } catch (e) {
+                console.error("Failed to parse local bag", e);
+            }
         }
-        if (user) {
+
+        // Only attempt sync if we have a valid user ID
+        if (user?.id || user?.userId) {
             syncCartWithBackend();
         }
     }, [user]);
 
     const syncCartWithBackend = async () => {
+        const userId = user?.id || user?.userId;
+        if (!userId) return;
+
         try {
-            const res = await API.get(`/cart/${user.id}`);
-            const backendItems = res.data.items.map(item => ({
-                ...item.product,
-                quantity: item.quantity,
-                size: item.size || 'M'
-            }));
-            setCart(backendItems);
-            localStorage.setItem('ira_bag', JSON.stringify(backendItems));
+            const res = await API.get(`/cart/${userId}`);
+
+            // CRITICAL FIX: Ensure res.data and res.data.items exist before mapping
+            if (res.data && res.data.items) {
+                const backendItems = res.data.items.map(item => ({
+                    ...item.product,
+                    quantity: item.quantity,
+                    size: item.size || 'M'
+                }));
+                setCart(backendItems);
+                localStorage.setItem('ira_bag', JSON.stringify(backendItems));
+            }
         } catch (err) {
             console.error("Archive sync failed:", err);
+            // Don't crash the UI if the backend is unreachable
         }
     };
 
@@ -42,35 +56,43 @@ export const CartProvider = ({ children }) => {
     const closeCart = () => setIsCartOpen(false);
     const toggleCart = () => setIsCartOpen(!isCartOpen);
 
-    // ADD TO CART (Now triggers the drawer to open automatically)
+    // CLEAR CART: Needed after successful purchase
+    const clearCart = () => {
+        setCart([]);
+        localStorage.removeItem('ira_bag');
+    };
+
+    // ADD TO CART
     const addToCart = async (product, selectedSize) => {
         const newItem = { ...product, quantity: 1, size: selectedSize };
 
         setCart((prevCart) => {
-            const exists = prevCart.find(item =>
+            // Safety check for empty prevCart
+            const currentCart = prevCart || [];
+            const exists = currentCart.find(item =>
                 item.id === product.id && item.size === selectedSize
             );
 
             let updatedCart;
             if (exists) {
-                updatedCart = prevCart.map(item =>
+                updatedCart = currentCart.map(item =>
                     (item.id === product.id && item.size === selectedSize)
                         ? { ...item, quantity: item.quantity + 1 }
                         : item
                 );
             } else {
-                updatedCart = [...prevCart, newItem];
+                updatedCart = [...currentCart, newItem];
             }
             localStorage.setItem('ira_bag', JSON.stringify(updatedCart));
             return updatedCart;
         });
 
-        // Trigger the luxury experience: Open the drawer immediately
         openCart();
 
-        if (user) {
+        const userId = user?.id || user?.userId;
+        if (userId) {
             try {
-                await API.post(`/cart/add/${user.id}`, {
+                await API.post(`/cart/add/${userId}`, {
                     productId: product.id,
                     quantity: 1,
                     size: selectedSize
@@ -83,16 +105,17 @@ export const CartProvider = ({ children }) => {
 
     const removeFromCart = async (productId, size) => {
         setCart((prev) => {
-            const updatedCart = prev.filter(item =>
+            const updatedCart = (prev || []).filter(item =>
                 !(item.id === productId && item.size === size)
             );
             localStorage.setItem('ira_bag', JSON.stringify(updatedCart));
             return updatedCart;
         });
 
-        if (user) {
+        const userId = user?.id || user?.userId;
+        if (userId) {
             try {
-                await API.delete(`/cart/remove/${user.id}/${productId}`);
+                await API.delete(`/cart/remove/${userId}/${productId}`);
             } catch (err) {
                 console.error("Remote remove failed", err);
             }
@@ -101,7 +124,7 @@ export const CartProvider = ({ children }) => {
 
     const updateQuantity = async (productId, size, amount) => {
         setCart((prev) => {
-            const updatedCart = prev.map(item =>
+            const updatedCart = (prev || []).map(item =>
                 (item.id === productId && item.size === size)
                     ? { ...item, quantity: Math.max(1, item.quantity + amount) }
                     : item
@@ -109,8 +132,6 @@ export const CartProvider = ({ children }) => {
             localStorage.setItem('ira_bag', JSON.stringify(updatedCart));
             return updatedCart;
         });
-
-        // Potential backend update logic here...
     };
 
     return (
@@ -122,7 +143,8 @@ export const CartProvider = ({ children }) => {
             toggleCart,
             addToCart,
             removeFromCart,
-            updateQuantity
+            updateQuantity,
+            clearCart // Exporting this for Checkout.jsx
         }}>
             {children}
         </CartContext.Provider>

@@ -6,7 +6,7 @@ const Home = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen selection:bg-black selection:text-white bg-[#F9F7F2]">
       <Navbar />
 
       <main className="flex h-[calc(100vh-104px)]">
@@ -17,7 +17,7 @@ const Home = () => {
             Est. 2026 • The Archive
           </div>
 
-          <h1 className="font-serif text-[120px] leading-[0.85] mb-12">
+          <h1 className="font-serif text-[120px] leading-[0.85] mb-12 text-[#1A1A1A]">
             IRA <br />
             <span className="italic font-normal opacity-80">archive.</span>
           </h1>
@@ -29,28 +29,31 @@ const Home = () => {
           <div className="flex gap-6 mt-16">
             <button
               onClick={() => navigate('/shop')}
-              className="bg-[#1A1A1A] text-white px-10 py-4 text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-black transition-all cursor-pointer"
+              className="bg-[#1A1A1A] text-white px-10 py-4 text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-black transition-all cursor-pointer shadow-lg"
             >
               Enter Gallery
             </button>
-            <button className="border border-black/20 px-10 py-4 text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-white transition-all cursor-pointer">
+            <button
+              onClick={() => navigate('/about')}
+              className="border border-black/20 px-10 py-4 text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-white hover:border-black transition-all cursor-pointer"
+            >
               The Story
             </button>
           </div>
         </div>
 
         {/* Right Side: The Big Image */}
-        <div className="w-1/2 bg-gray-200 overflow-hidden relative group">
+        <div className="w-1/2 bg-[#EFEEEA] overflow-hidden relative group">
             <img
-              src="https://images.unsplash.com/photo-1594633312681-425c7b97ccd1"
-              alt="Heritage Collection"
-              className="w-full h-full object-cover grayscale-[20%] group-hover:scale-105 transition-transform duration-1000"
+              src="/landing page.png"
+              alt="IRA Heritage Collection"
+              className="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-[2000ms] ease-out"
             />
 
-            <div className="absolute bottom-12 right-0 bg-white/40 backdrop-blur-lg p-10 pr-24 text-right">
-                <span className="text-[8px] uppercase tracking-[0.4em] opacity-60 block mb-2">Current Archive</span>
-                <h2 className="font-serif text-4xl italic mb-1">The Heritage Core</h2>
-                <span className="text-[9px] opacity-40">Vol. 01</span>
+            <div className="absolute bottom-12 right-0 bg-white/60 backdrop-blur-md p-10 pr-24 text-right border-l border-black/5">
+                <span className="text-[8px] uppercase tracking-[0.4em] opacity-60 block mb-2 font-bold">Current Archive</span>
+                <h2 className="font-serif text-4xl italic mb-1 text-[#1A1A1A]">The Heritage Core</h2>
+                <span className="text-[9px] opacity-40 uppercase tracking-widest">Vol. 01</span>
             </div>
         </div>
       </main>
