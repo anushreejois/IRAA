@@ -12,7 +12,7 @@ const Checkout = () => {
 
     const [address, setAddress] = useState({ street: '', city: '', zip: '' });
 
-    // Calculate total precisely
+    // Calculate subtotal precisely
     const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
     const handleCheckout = async (e) => {
@@ -47,8 +47,8 @@ const Checkout = () => {
             // 5. Success Flow
             alert("Acquisition Successful. The Archive has recorded your manifest.");
 
-            if (clearCart) clearCart(); // Clean up the bag
-            navigate('/orders'); // Redirect to the Archivist's Log
+            if (clearCart) clearCart();
+            navigate('/orders');
 
         } catch (err) {
             console.error("Acquisition Failed:", err.response?.data || err.message);
@@ -62,7 +62,7 @@ const Checkout = () => {
 
             <div className="max-w-5xl mx-auto py-24 px-12">
                 <header className="mb-20 text-center">
-                    <span className="text-[10px] uppercase tracking-[0.5em] opacity-30 block mb-4">Secure Checkout</span>
+                    <span className="text-[10px] uppercase tracking-[0.5em] opacity-30 block mb-4 font-bold">Secure Checkout</span>
                     <h1 className="font-serif text-6xl italic text-[#1A1A1A] tracking-tighter">Finalize Acquisition.</h1>
                 </header>
 
@@ -95,8 +95,8 @@ const Checkout = () => {
                                 </div>
                             </section>
 
-                            <button type="submit" className="w-full bg-[#1A1A1A] text-white py-8 text-[11px] font-bold uppercase tracking-[0.5em] hover:bg-black transition-all duration-500 shadow-xl">
-                                Confirm Purchase — ${subtotal.toLocaleString()}
+                            <button type="submit" className="w-full bg-[#1A1A1A] text-white py-8 text-[11px] font-bold uppercase tracking-[0.5em] hover:bg-black transition-all duration-500 shadow-xl active:scale-[0.98] cursor-pointer">
+                                Confirm Purchase — ₹{subtotal.toLocaleString('en-IN')}
                             </button>
                         </form>
                     </div>
@@ -106,28 +106,28 @@ const Checkout = () => {
                         <div className="sticky top-32 bg-white/40 p-10 border border-black/5 backdrop-blur-sm">
                             <h2 className="text-[10px] font-bold uppercase tracking-[0.4em] opacity-40 mb-10">Manifest Summary</h2>
 
-                            <div className="space-y-6 mb-12">
+                            <div className="space-y-8 mb-12">
                                 {cart.map((item, idx) => (
-                                    <div key={idx} className="flex justify-between items-center group">
+                                    <div key={idx} className="flex justify-between items-start group">
                                         <div className="flex flex-col">
-                                            <span className="font-serif italic text-lg text-[#1A1A1A]">{item.title}</span>
-                                            <span className="text-[9px] uppercase tracking-widest opacity-30 mt-1">Qty: {item.quantity}</span>
+                                            <span className="font-serif italic text-lg text-[#1A1A1A] leading-tight">{item.title}</span>
+                                            <span className="text-[9px] uppercase tracking-widest opacity-30 mt-2 font-bold">Qty: {item.quantity} — Size: {item.size}</span>
                                         </div>
-                                        <span className="font-serif italic opacity-60 text-sm">
-                                            ${(item.price * item.quantity).toLocaleString()}
+                                        <span className="font-serif italic opacity-80 text-sm pl-4 tabular-nums">
+                                            ₹{(item.price * item.quantity).toLocaleString('en-IN')}
                                         </span>
                                     </div>
                                 ))}
                             </div>
 
-                            <div className="border-t border-black/10 pt-8 flex justify-between items-baseline">
+                            <div className="border-t border-black/10 pt-10 flex justify-between items-baseline">
                                 <span className="text-[10px] font-bold uppercase tracking-[0.4em] opacity-40">Total Valuation</span>
-                                <span className="font-serif text-4xl italic text-[#1A1A1A]">
-                                    ${subtotal.toLocaleString()}
+                                <span className="font-serif text-5xl italic text-[#1A1A1A]">
+                                    ₹{subtotal.toLocaleString('en-IN')}
                                 </span>
                             </div>
 
-                            <p className="mt-12 text-[8px] uppercase tracking-widest opacity-20 text-center leading-relaxed">
+                            <p className="mt-12 text-[8px] uppercase tracking-[0.4em] opacity-20 text-center leading-relaxed">
                                 By confirming, you agree to the archival storage <br/> and logistics terms of IRA.
                             </p>
                         </div>
